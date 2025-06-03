@@ -9,6 +9,8 @@ import co.edu.javeriana.as.personapp.domain.Profession;
 @Port
 public interface ProfessionInputPort {
 
+    void setPersistence(ProfessionOutputPort professionOutputPort);
+
     Profession create(Profession profession);
 
     Profession edit(Integer identification, Profession profession) throws NoExistException;
@@ -20,6 +22,4 @@ public interface ProfessionInputPort {
     Profession findOne(Integer identification) throws NoExistException;
 
     Integer count();
-
-    void setPersistence(ProfessionOutputPort professionOutputPort);
 } 

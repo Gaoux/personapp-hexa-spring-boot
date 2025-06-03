@@ -9,6 +9,7 @@ import co.edu.javeriana.as.personapp.domain.Study;
 
 @Port
 public interface StudyInputPort {
+    void setPersintence(StudyOutputPort studyOutputPort);
 
     Study create(Study study) throws NoExistException;
 
@@ -21,6 +22,4 @@ public interface StudyInputPort {
     Study findOne(Integer personId, Integer professionId) throws NoExistException;
 
     Integer count();
-
-    void setPersintence(StudyOutputPort studyOutputPort);
 } 

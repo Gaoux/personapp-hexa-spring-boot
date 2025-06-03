@@ -9,6 +9,7 @@ import co.edu.javeriana.as.personapp.domain.Phone;
 
 @Port
 public interface PhoneInputPort {
+    void setPersistence(PhoneOutputPort phoneOutputPort);
 
     Phone create(Phone phone) throws NoExistException;
 
@@ -23,6 +24,4 @@ public interface PhoneInputPort {
     Integer count();
 
     List<Phone> getPhonesOfPerson(Integer personId) throws NoExistException;
-
-    void setPersistence(PhoneOutputPort phoneOutputPort);
 } 

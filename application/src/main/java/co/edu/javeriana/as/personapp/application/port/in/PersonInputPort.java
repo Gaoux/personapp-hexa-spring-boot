@@ -12,6 +12,8 @@ import co.edu.javeriana.as.personapp.domain.Study;
 @Port
 public interface PersonInputPort {
 	
+	void setPersistence(PersonOutputPort personOutputPort);
+	
 	Person create(Person person);
 
 	Person edit(Long cc, Person person) throws NoExistException;
@@ -27,6 +29,4 @@ public interface PersonInputPort {
 	List<Phone> getPhones(Long cc) throws NoExistException;
 
 	List<Study> getStudies(Long cc) throws NoExistException;
-
-	void setPersistence(PersonOutputPort personOutputPort);
 }
