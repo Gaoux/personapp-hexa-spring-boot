@@ -1,64 +1,76 @@
 version: '3.8'
 
 services:
-  # -------------------------------
-  # MariaDB service
-  # -------------------------------
   mariadb:
     build:
       context: .
       dockerfile: docker/mariadb.Dockerfile
     container_name: personapp-mariadb
+    restart: always
     ports:
       - '3307:3306'
     environment:
-      MYSQL_ROOT_PASSWORD: root
-      MYSQL_DATABASE: persona_db
-      MYSQL_USER: persona_db
-      MYSQL_PASSWORD: persona_db
-    volumes:
-      - mariadb_data:/var/lib/mysql
+      - MYSQL_ROOT_PASSWORD=root
+      - MYSQL_DATABASE=persona_db
+      - MYSQL_USER=persona_db
+      - MYSQL_PASSWORD=persona_db
     networks:
       - personapp-network
+    volumes:
+      - mariadb_data:/var/lib/mysql
+    # healthcheck:  # Temporarily commented out
+    #   test: ["CMD", "mysql", "-hlocalhost", "-u$${MYSQL_USER}", "-p$${MYSQL_PASSWORD}", "-e", "SELECT 1"]
+    #   interval: 10s
+    #   timeout: 5s
+    #   retries: 10
+    #   start_period: 30s
 
-  # -------------------------------
-  # MongoDB service
-  # -------------------------------
   mongodb:
     build:
       context: .
       dockerfile: docker/mongodb.Dockerfile
     container_name: personapp-mongodb
+    restart: always
     ports:
       - '27017:27017'
+    command: ['--bind_ip_all', '--auth']
     environment:
-      MONGO_INITDB_ROOT_USERNAME: root
-      MONGO_INITDB_ROOT_PASSWORD: root
-      MONGO_INITDB_DATABASE: persona_db
+      - MONGO_INITDB_ROOT_USERNAME=root
+      - MONGO_INITDB_ROOT_PASSWORD=root
+      - MONGO_INITDB_DATABASE=persona_db
     networks:
       - personapp-network
+    volumes:
+      - mongodb_data:/data/db
+    # healthcheck:
+    #   test:
+    #     [
+    #       'CMD-SHELL',
+    #       'mongosh --host localhost --username root --password root --authenticationDatabase admin --eval "db.adminCommand(''ping'').ok" --quiet',
+    #     ]
+    #   interval: 10s
+    #   timeout: 5s
+    #   retries: 10
+    #   start_period: 30s
 
-  # -------------------------------
-  # REST API (Spring Boot)
-  # -------------------------------
   personapp-api:
     build:
       context: .
       dockerfile: Dockerfile
     container_name: personapp-api
+    restart: always
     ports:
       - '3000:3000'
     environment:
-      SPRING_PROFILES_ACTIVE: docker
+      - SPRING_PROFILES_ACTIVE=docker
     depends_on:
-      - mariadb
-      - mongodb
+      mariadb:
+        condition: service_started
+      mongodb:
+        condition: service_started
     networks:
       - personapp-network
 
-  # -------------------------------
-  # CLI adapter (optional)
-  # -------------------------------
   personapp-cli:
     build:
       context: .
@@ -67,14 +79,13 @@ services:
     stdin_open: true
     tty: true
     depends_on:
-      - mariadb
-      - mongodb
+      mariadb:
+        condition: service_started
+      mongodb:
+        condition: service_started
     networks:
       - personapp-network
 
-# -------------------------------
-# Network and volume definitions
-# -------------------------------
 networks:
   personapp-network:
     driver: bridge

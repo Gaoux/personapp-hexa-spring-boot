@@ -1,35 +1,9 @@
-# Build stage
-FROM maven:3.9-amazoncorretto-17 as build
+FROM openjdk:17-slim
 
 WORKDIR /app
 
-# Copy root POM and all submodule POMs
-COPY pom.xml .
-COPY common/pom.xml common/
-COPY domain/pom.xml domain/
-COPY application/pom.xml application/
-COPY maria-output-adapter/pom.xml maria-output-adapter/
-COPY mongo-output-adapter/pom.xml mongo-output-adapter/
-COPY rest-input-adapter/pom.xml rest-input-adapter/
-COPY cli-input-adapter/pom.xml cli-input-adapter/
+COPY target/cli-input-adapter-0.0.1-SNAPSHOT.jar /app/cli-app.jar
 
-# Now copy all source code so Maven can resolve the full project structure
-COPY common/src common/src
-COPY domain/src domain/src
-COPY application/src application/src
-COPY maria-output-adapter/src maria-output-adapter/src
-COPY mongo-output-adapter/src mongo-output-adapter/src
-COPY rest-input-adapter/src rest-input-adapter/src
-COPY cli-input-adapter/src cli-input-adapter/src
+ENV SPRING_PROFILES_ACTIVE=docker
 
-# Build only the CLI module, but Maven will see the full project context
-RUN mvn clean install -pl cli-input-adapter -am -DskipTests
-
-# Runtime stage
-FROM amazoncorretto:17-alpine
-
-WORKDIR /cli
-
-COPY --from=build /app/cli-input-adapter/target/*.jar cli.jar
-
-ENTRYPOINT ["java", "-jar", "cli.jar"]
+ENTRYPOINT ["java", "-jar", "cli-app.jar"] 
