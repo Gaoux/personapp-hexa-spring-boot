@@ -2,14 +2,22 @@ package co.edu.javeriana.as.personapp.mariadb.mapper;
 
 import java.time.LocalDate;
 import java.time.ZoneId;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
+import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 
 import co.edu.javeriana.as.personapp.common.annotations.Mapper;
+import co.edu.javeriana.as.personapp.domain.Gender;
+import co.edu.javeriana.as.personapp.domain.Person;
+import co.edu.javeriana.as.personapp.domain.Profession;
 import co.edu.javeriana.as.personapp.domain.Study;
 import co.edu.javeriana.as.personapp.mariadb.entity.EstudiosEntity;
 import co.edu.javeriana.as.personapp.mariadb.entity.EstudiosEntityPK;
+import co.edu.javeriana.as.personapp.mariadb.entity.PersonaEntity;
+import co.edu.javeriana.as.personapp.mariadb.entity.ProfesionEntity;
 
 @Mapper
 public class EstudiosMapperMaria {
@@ -24,37 +32,40 @@ public class EstudiosMapperMaria {
 		EstudiosEntityPK estudioPK = new EstudiosEntityPK();
 		estudioPK.setCcPer(study.getPerson().getIdentification());
 		estudioPK.setIdProf(study.getProfession().getIdentification());
-		EstudiosEntity estudio = new EstudiosEntity();
-		estudio.setEstudiosPK(estudioPK);
-		estudio.setFecha(validateFecha(study.getGraduationDate()));
-		estudio.setUniver(validateUniver(study.getUniversityName()));
-		return estudio;
-	}
 
-	private Date validateFecha(LocalDate graduationDate) {
-		return graduationDate != null
-				? Date.from(graduationDate.atStartOfDay().atZone(ZoneId.systemDefault()).toInstant())
-				: null;
-	}
+		EstudiosEntity estudiosEntity = new EstudiosEntity(estudioPK);
+		estudiosEntity.setFecha(study.getGraduationDate() != null ? Date.from(study.getGraduationDate().atStartOfDay(ZoneId.systemDefault()).toInstant()) : null);
+		estudiosEntity.setUniver(study.getUniversityName());
+		
+		// Set related entities for FK relationship
+		PersonaEntity personaEntity = new PersonaEntity();
+		personaEntity.setCc(study.getPerson().getIdentification());
+		// Potentially fetch the full PersonaEntity if needed by ORM, but for FK only ID is usually enough
+		// personaEntity = personaRepositoryMaria.findById(study.getPerson().getIdentification()).orElse(null);
+		estudiosEntity.setPersona(personaEntity);
 
-	private String validateUniver(String universityName) {
-		return universityName != null ? universityName : "";
+		ProfesionEntity profesionEntity = new ProfesionEntity();
+		profesionEntity.setId(study.getProfession().getIdentification());
+		// Potentially fetch the full ProfesionEntity if needed
+		// profesionEntity = profesionRepositoryMaria.findById(study.getProfession().getIdentification()).orElse(null);
+		estudiosEntity.setProfesion(profesionEntity);
+		
+		return estudiosEntity;
 	}
 
 	public Study fromAdapterToDomain(EstudiosEntity estudiosEntity) {
-		Study study = new Study();
-		study.setPerson(personaMapperMaria.fromAdapterToDomain(estudiosEntity.getPersona()));
-		study.setProfession(profesionMapperMaria.fromAdapterToDomain(estudiosEntity.getProfesion()));
-		study.setGraduationDate(validateGraduationDate(estudiosEntity.getFecha()));
-		study.setUniversityName(validateUniversityName(estudiosEntity.getUniver()));
-		return null;
+		Person person = personaMapperMaria.fromAdapterToDomain(estudiosEntity.getPersona());
+		Profession profession = profesionMapperMaria.fromAdapterToDomain(estudiosEntity.getProfesion());
+		LocalDate graduationDate = estudiosEntity.getFecha() != null ? new java.sql.Date(estudiosEntity.getFecha().getTime()).toLocalDate() : null;
+		return new Study(person, profession, graduationDate, estudiosEntity.getUniver());
 	}
 
-	private LocalDate validateGraduationDate(Date fecha) {
-		return fecha != null ? fecha.toInstant().atZone(ZoneId.systemDefault()).toLocalDate() : null;
-	}
-
-	private String validateUniversityName(String univer) {
-		return univer != null ? univer : "";
+	public List<Study> fromAdapterListToDomainList(List<EstudiosEntity> estudiosEntities) {
+		if (estudiosEntities == null) {
+			return new ArrayList<>();
+		}
+		return estudiosEntities.stream()
+				.map(this::fromAdapterToDomain)
+				.collect(Collectors.toList());
 	}
 }

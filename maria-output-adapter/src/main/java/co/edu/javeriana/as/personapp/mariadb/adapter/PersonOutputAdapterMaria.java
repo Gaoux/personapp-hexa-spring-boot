@@ -1,5 +1,6 @@
 package co.edu.javeriana.as.personapp.mariadb.adapter;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import java.util.stream.Collectors;
@@ -35,26 +36,36 @@ public class PersonOutputAdapterMaria implements PersonOutputPort {
 	}
 
 	@Override
-	public Boolean delete(Integer identification) {
+	public Boolean delete(Long cc) {
 		log.debug("Into delete on Adapter MariaDB");
-		personaRepositoryMaria.deleteById(identification);
-		return personaRepositoryMaria.findById(identification).isEmpty();
+		personaRepositoryMaria.deleteById(cc.intValue());
+		return personaRepositoryMaria.findById(cc.intValue()).isEmpty();
 	}
 
 	@Override
-	public List<Person> find() {
-		log.debug("Into find on Adapter MariaDB");
-		return personaRepositoryMaria.findAll().stream().map(personaMapperMaria::fromAdapterToDomain)
-				.collect(Collectors.toList());
+	public List<Person> findAll() {
+		log.debug("Into findAll on Adapter MariaDB");
+		try {
+			return personaRepositoryMaria.findAll().stream().map(personaMapperMaria::fromAdapterToDomain)
+					.collect(Collectors.toList());
+		} catch (Exception e) {
+			log.error("Error mapping data from MariaDB: " + e.getMessage(), e);
+			return new ArrayList<>();
+		}
 	}
 
 	@Override
-	public Person findById(Integer identification) {
+	public Person findById(Long cc) {
 		log.debug("Into findById on Adapter MariaDB");
-		if (personaRepositoryMaria.findById(identification).isEmpty()) {
+		try {
+			if (personaRepositoryMaria.findById(cc.intValue()).isEmpty()) {
+				return null;
+			} else {
+				return personaMapperMaria.fromAdapterToDomain(personaRepositoryMaria.findById(cc.intValue()).get());
+			}
+		} catch (Exception e) {
+			log.error("Error finding person by ID in MariaDB: " + e.getMessage(), e);
 			return null;
-		} else {
-			return personaMapperMaria.fromAdapterToDomain(personaRepositoryMaria.findById(identification).get());
 		}
 	}
 
